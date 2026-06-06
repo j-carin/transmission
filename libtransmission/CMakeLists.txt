@@ -77,6 +77,8 @@ target_sources(${TR_NAME}
         makemeta.cc
         makemeta.h
         mime-types.h
+        move.cc
+        move.h
         net.cc
         net.h
         observable.h

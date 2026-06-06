@@ -47,6 +47,7 @@
 #include "libtransmission/interned-string.h"
 #include "libtransmission/ip-cache.h"
 #include "libtransmission/log.h" // for tr_log_level
+#include "libtransmission/move.h"
 #include "libtransmission/net.h" // for tr_port, tr_tos_t
 #include "libtransmission/open-files.h"
 #include "libtransmission/peer-io.h" // tr_preferred_transport
@@ -1148,6 +1149,11 @@ public:
     void verify_add(tr_torrent* tor);
     void verify_remove(tr_torrent const* tor);
 
+    // Relocate a finished torrent's files to their destination on a background
+    // thread so that a long copy doesn't block the session thread.
+    void move_add(std::unique_ptr<tr_move_worker::Mediator> mediator);
+    void move_remove(tr_torrent const* tor);
+
     void fetch(tr_web::FetchOptions&& options) const
     {
         if (web_)
@@ -1473,6 +1479,9 @@ private:
     std::unique_ptr<libtransmission::Timer> save_timer_;
 
     std::unique_ptr<tr_verify_worker> verifier_ = std::make_unique<tr_verify_worker>();
+
+    // depends-on: torrents_ (mediators hold raw torrent pointers)
+    std::unique_ptr<tr_move_worker> mover_ = std::make_unique<tr_move_worker>();
 
 public:
     std::unique_ptr<libtransmission::Timer> utp_timer;
