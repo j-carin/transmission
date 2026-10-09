@@ -81,6 +81,6 @@ the new tag and recreate the container.
 
 When upstream tags a new release, this branch is rebased onto it and rebuilt; if #8875
 (or an equivalent) is merged into a release, the fork is retired in favour of stock.
-The PR on this fork (base: `upstream-4.1.3`) shows the full diff against stock.
+The full diff against stock: `git diff 4.1.3 async-move-4.1.3`.
 
 No warranty. It moves your files; test it on a throwaway torrent first.
