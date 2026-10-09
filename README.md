@@ -1,3 +1,5 @@
+> **Fork note:** this branch is Transmission 4.1.3 plus a backport of upstream PR [#8875](https://github.com/transmission/transmission/pull/8875), which moves completed torrents on a background thread so the daemon no longer freezes during cross-filesystem moves. See [`asyncmove/README.md`](asyncmove/README.md) for the measurements, the Docker image and how it is maintained.
+
 ## About
 
 Transmission is a fast, easy, and free BitTorrent client. It comes in several flavors:
