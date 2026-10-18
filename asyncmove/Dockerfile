@@ -9,7 +9,7 @@
 
 # The live container's image: lscr.io/linuxserver/transmission:latest,
 # label 4.1.3-r0-ls363, built 2026-09-29, Alpine edge.
-ARG BASE=lscr.io/linuxserver/transmission@sha256:4813745e2c721997d8849f5718786fd4406b3c656fbef479f87a161e51383cbd
+ARG BASE=lscr.io/linuxserver/transmission@sha256:50e09ccd5cd7c9223f8b14a310872520bf993fc81ecef46a3580428e7c91f7cd
 
 # ---------------------------------------------------------------------------
 # builder: the same image, so musl, libstdc++, curl, libevent, libdeflate,
