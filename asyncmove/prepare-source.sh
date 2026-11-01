@@ -1,5 +1,5 @@
 #!/bin/sh
-# Export the async-move-4.1.3 branch at HEAD, with every submodule (recursively),
+# Export the checked-out async-move branch at HEAD, with every submodule (recursively),
 # into ./transmission-src.tar for the Docker build context. Refuses a dirty tree.
 set -eu
 REPO=${REPO:-$(cd "$(dirname "$0")/.." && pwd)}

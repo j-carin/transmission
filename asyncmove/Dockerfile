@@ -1,15 +1,16 @@
-# Patched transmission-daemon (async move backport, branch async-move-4.1.3)
+# Patched transmission-daemon (async move backport, branch async-move-4.1.4)
 # dropped into the exact linuxserver image the live container runs.
 #
 # Build context: this directory, after ./prepare-source.sh has written
 # transmission-src.tar (HEAD of the branch plus every submodule, recursively).
 #
 #   ./prepare-source.sh
-#   docker build -t local/transmission-asyncmove:4.1.3 .
+#   docker build -t local/transmission-asyncmove:4.1.4 .
 
-# The live container's image: lscr.io/linuxserver/transmission:latest,
-# label 4.1.3-r0-ls363, built 2026-09-29, Alpine edge.
-ARG BASE=lscr.io/linuxserver/transmission@sha256:50e09ccd5cd7c9223f8b14a310872520bf993fc81ecef46a3580428e7c91f7cd
+# lscr.io/linuxserver/transmission:4.1.4-r0-ls367, built 2026-10-30, Alpine edge:
+# the linux/arm64 manifest of index sha256:5b3c27a96c8a37c878a525ebf377a32032c3a3acfe845ecaa7c3eb10b09c2caa
+# (amd64 manifest: sha256:ad85dbef853a8fb5318898023c9c2be88a982d26c4e4dfca02a18095ac3113c9).
+ARG BASE=lscr.io/linuxserver/transmission@sha256:48ef9dd6e3d7e48de55d43cc1e16fd6e9ea269a2f06c0593a3ecbd74755fd387
 
 # ---------------------------------------------------------------------------
 # builder: the same image, so musl, libstdc++, curl, libevent, libdeflate,
@@ -17,7 +18,7 @@ ARG BASE=lscr.io/linuxserver/transmission@sha256:50e09ccd5cd7c9223f8b14a31087252
 # ---------------------------------------------------------------------------
 FROM ${BASE} AS builder
 
-# makedepends from aports community/transmission APKBUILD (pkgver 4.1.3-r0),
+# makedepends from aports community/transmission APKBUILD (pkgver 4.1.4-r0),
 # minus the GTK/Qt toolkits, plus build-base (abuild always installs it; clang
 # needs gcc's libgcc_s.so link) and abuild for its default CFLAGS/LDFLAGS.
 RUN apk add --no-cache \
@@ -28,12 +29,12 @@ COPY transmission-src.tar /tmp/
 RUN mkdir /src && tar -xf /tmp/transmission-src.tar -C /src && rm /tmp/transmission-src.tar
 WORKDIR /src
 
-# 4.1.3's CMakeLists.txt takes the revision from $GIT_COMMIT only when
+# 4.1.4's CMakeLists.txt takes the revision from $GIT_COMMIT only when
 # $JENKINS_URL is also set (there is no .git in this tree, so otherwise it
 # would fall back to "0"). It keeps the first 10 characters, which for the
-# 4.1.3 tag is 838877323f: the same "(838877323f)" stock prints.
+# 4.1.4 tag is a6d907d9ea: the same "(a6d907d9ea)" stock prints.
 ENV JENKINS_URL=local \
-    GIT_COMMIT=838877323facc4cc2b677fe817e203779c437bb1 \
+    GIT_COMMIT=a6d907d9ea2313143af714d7830feb6c1b60b84c \
     CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 # Flags as in the APKBUILD's build(): abuild's default CFLAGS/CXXFLAGS/LDFLAGS
@@ -76,7 +77,9 @@ RUN set -e; . /usr/share/abuild/default.conf; \
 # final: the live image byte-for-byte, with only the daemon binary replaced.
 # ---------------------------------------------------------------------------
 FROM ${BASE}
+# re-declared so the label below can name the base it was built on
+ARG BASE
 COPY --from=builder --chown=root:root \
      /src/build/daemon/transmission-daemon /usr/bin/transmission-daemon
-LABEL org.jcarin.asyncmove.source="transmission branch async-move-4.1.3" \
-      org.jcarin.asyncmove.base="lscr.io/linuxserver/transmission@sha256:4813745e2c721997d8849f5718786fd4406b3c656fbef479f87a161e51383cbd"
+LABEL org.jcarin.asyncmove.source="transmission branch async-move-4.1.4" \
+      org.jcarin.asyncmove.base="${BASE}"
