@@ -1,6 +1,6 @@
-# Transmission 4.1.3 with background completion moves
+# Transmission 4.1.4 with background completion moves
 
-This branch is stock Transmission **4.1.3** plus a backport of upstream PR
+This branch is stock Transmission **4.1.4** plus a backport of upstream PR
 [#8875](https://github.com/transmission/transmission/pull/8875) ("relocate completed
 torrents on a background thread", by Daniel Altamirano). Nothing else is changed.
 
@@ -22,15 +22,16 @@ releases people actually run. This branch is that backport.
 ## Measured result
 
 A 3 GiB torrent moved from local disk onto an rclone mount of a remote storage box
-(about 27 MB/s), with an RPC call fired every second during the move:
+(about 27 MB/s), with an RPC call fired every second during the move. The stock
+comparison was run once, on 4.1.3; the 4.1.4 port was re-run patched only.
 
-|                                     | this branch | stock 4.1.3 |
-|-------------------------------------|-------------|-------------|
-| copy duration                       | 120.1 s     | 119.1 s     |
-| `torrent-set-location` returned in  | 0.001 s     | 118.9 s     |
-| RPC polls failed (10 s timeout)     | **0 / 120** | **108 / 119** |
-| longest stretch with no RPC answer  | 1.0 s       | 118.9 s     |
-| data verified at destination        | 100%        | 100%        |
+|                                     | patched 4.1.4 | patched 4.1.3 | stock 4.1.3 |
+|-------------------------------------|---------------|---------------|-------------|
+| copy duration                       | 121.2 s       | 120.1 s       | 119.1 s     |
+| `torrent-set-location` returned in  | 0.002 s       | 0.001 s       | 118.9 s     |
+| RPC polls failed (10 s timeout)     | **0 / 121**   | **0 / 120**   | **108 / 119** |
+| longest stretch with no RPC answer  | 1.0 s         | 1.0 s         | 118.9 s     |
+| data verified at destination        | 100%          | 100%          | 100%        |
 
 Full method and per-poll data: [`TEST_RESULTS.md`](TEST_RESULTS.md), [`results/`](results/),
 [`asyncmove_test.py`](asyncmove_test.py).
@@ -39,7 +40,8 @@ Full method and per-poll data: [`TEST_RESULTS.md`](TEST_RESULTS.md), [`results/`
 
 The two commits are cherry-picked with their original authorship. The lines changed in
 `torrent.cc`, `torrent.h`, `session.cc` and `session.h` are identical to the PR, and
-`libtransmission/move.cc` is byte-identical. Adapting to 4.1.3 meant:
+`libtransmission/move.cc` is byte-identical. Adapting to 4.1.x (done on 4.1.3; the
+same two commits cherry-picked onto 4.1.4 without conflicts) meant:
 
 - `torrent.cc`: 4.1.3 uses `doomed_.emit(tor)` where `main` has `doomed_(tor)`; the PR's
   `move_remove(tor)` goes before it.
@@ -49,12 +51,13 @@ The two commits are cherry-picked with their original authorship. The lines chan
 - 4.1.3 still has the write cache that `main` removed; it is flushed on the session
   thread by the existing `close_torrent_files()` before the move is queued.
 
-The client still identifies as stock 4.1.3 everywhere: peer-id `-TR4130-`, user agent
-`Transmission/4.1.3`, and `--version` prints `transmission-daemon 4.1.3 (838877323f)`.
+The client still identifies as stock 4.1.4 everywhere: peer-id `-TR4140-`, user agent
+`Transmission/4.1.4`, and `--version` prints `transmission-daemon 4.1.4 (a6d907d9ea)`.
 Private trackers see nothing new.
 
-Tests: the full libtransmission suite passes (549 run, 549 passed), including the move
-and incomplete-dir tests repeated 15 times.
+Tests on 4.1.4: the full ctest suite passes (633 run, 0 failed; 22 of them skip for
+missing locales or IPv6), including the 23 move and incomplete-dir tests, which also
+pass repeated 15 times.
 
 Known limitation, inherited from the PR and equally present on `main`: a *manual*
 set-location while a torrent is still downloading can accept blocks already in flight
@@ -70,7 +73,7 @@ existing linuxserver container: same s6 setup, PUID/PGID, volumes and config.
 ```sh
 cd asyncmove
 ./prepare-source.sh                 # exports this branch + submodules to transmission-src.tar
-docker build -t local/transmission-asyncmove:4.1.3 .
+docker build -t local/transmission-asyncmove:4.1.4 .
 ```
 
 The pinned base is arm64 (`linux/arm64`); for amd64, set `--build-arg BASE=` to the
@@ -79,8 +82,14 @@ the new tag and recreate the container.
 
 ## Keeping it current
 
-When upstream tags a new release, this branch is rebased onto it and rebuilt; if #8875
-(or an equivalent) is merged into a release, the fork is retired in favour of stock.
-The full diff against stock: `git diff 4.1.3 async-move-4.1.3`.
+When upstream tags a new release, a new `async-move-<version>` branch is cut from the
+tag, the backport is cherry-picked onto it, and the image is rebuilt on that release's
+linuxserver image. If #8875 (or an equivalent) is merged into a release, the fork is
+retired in favour of stock. The full diff against stock: `git diff 4.1.4 async-move-4.1.4`.
+
+| branch | upstream tag | linuxserver base (arm64 digest) | image tag | status |
+|--------|--------------|---------------------------------|-----------|--------|
+| `async-move-4.1.4` | 4.1.4 (`a6d907d9ea`, 2026-10-24) | 4.1.4-r0-ls367, `sha256:48ef9dd6e3d7…` | `local/transmission-asyncmove:4.1.4` | current; tested 2026-11-01 |
+| `async-move-4.1.3` | 4.1.3 (`838877323f`) | 4.1.3-r0-ls364, `sha256:50e09ccd5cd7…` (first built on ls363, `sha256:4813745e2c72…`) | `local/transmission-asyncmove:4.1.3` | previous; kept for rollback |
 
 No warranty. It moves your files; test it on a throwaway torrent first.
