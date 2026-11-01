@@ -1,0 +1,48 @@
+[migrations] started
+[migrations] no migrations found
+───────────────────────────────────────
+
+      ██╗     ███████╗██╗ ██████╗
+      ██║     ██╔════╝██║██╔═══██╗
+      ██║     ███████╗██║██║   ██║
+      ██║     ╚════██║██║██║   ██║
+      ███████╗███████║██║╚██████╔╝
+      ╚══════╝╚══════╝╚═╝ ╚═════╝
+
+   Brought to you by linuxserver.io
+───────────────────────────────────────
+
+To support LSIO projects visit:
+https://www.linuxserver.io/donate/
+
+───────────────────────────────────────
+GID/UID
+───────────────────────────────────────
+
+User UID:    1010
+User GID:    1010
+───────────────────────────────────────
+Linuxserver.io version: 4.1.4-r0-ls367
+Build-date: 2026-10-30T01:38:25+00:00
+───────────────────────────────────────
+    
+[custom-init] No custom files found, skipping...
+[2026-11-01T17:46:06.352+0000] inf ip-cache.cc:385 Cached IPv4 source address 172.17.0.2 (ip-cache.cc:385)
+[2026-11-01T17:46:06.352+0000] inf session.cc:424 Listening to incoming peer connections on 0.0.0.0:51499 (session.cc:424)
+[2026-11-01T17:46:06.352+0000] inf session.cc:424 Listening to incoming peer connections on [::]:51499 (session.cc:424)
+[2026-11-01T17:46:06.352+0000] inf tr-udp.cc:207 Bound UDP IPv4 address 0.0.0.0:51499 (tr-udp.cc:207)
+[2026-11-01T17:46:06.352+0000] inf tr-udp.cc:254 Bound UDP IPv6 address [::]:51499 (tr-udp.cc:254)
+[2026-11-01T17:46:06.352+0000] inf rpc-server.cc:878 Added '127.0.0.1' to host whitelist (rpc-server.cc:878)
+[2026-11-01T17:46:06.352+0000] inf rpc-server.cc:878 Added '::1' to host whitelist (rpc-server.cc:878)
+[2026-11-01T17:46:06.352+0000] inf rpc-server.cc:1013 Serving RPC and Web requests on 0.0.0.0:9091/transmission/ (rpc-server.cc:1013)
+[2026-11-01T17:46:06.352+0000] inf rpc-server.cc:825 Listening for RPC and Web requests on '0.0.0.0:9091' (rpc-server.cc:825)
+[2026-11-01T17:46:06.352+0000] WRN rpc-server.cc:1031 The RPC server has no password and its IP whitelist is disabled. Anyone who can reach it has full control. Consider enabling 'rpc_whitelist_enabled' or setting 'rpc_authentication_required' and 'rpc_password'. (rpc-server.cc:1031)
+[2026-11-01T17:46:06.352+0000] inf rpc-server.cc:1038 Serving RPC and Web requests from '/usr/share/transmission/public_html' (rpc-server.cc:1038)
+[2026-11-01T17:46:06.352+0000] inf daemon.cc:889 Loading settings from '/config' (daemon.cc:889)
+[2026-11-01T17:46:06.353+0000] ERR utils.cc:145 Couldn't read '/config/queue.json': No such file or directory (2) (utils.cc:145)
+[2026-11-01T17:46:06.780+0000] inf ip-cache.cc:220 Cached IPv4 global address 150.136.252.59 (ip-cache.cc:220)
+[2026-11-01T17:46:20.172+0000] inf move Background move worker thread started (move.cc:32)
+[2026-11-01T17:46:20.172+0000] inf move Starting a move job; 0 more still queued (move.cc:61)
+[2026-11-01T17:48:18.876+0000] inf move Move job completed successfully (move.cc:78)
+[2026-11-01T17:48:18.876+0000] inf asyncmove-3g.bin Finished moving files from '/downloads/incomplete' to '/downloads/complete' (torrent.cc:1796)
+[2026-11-01T17:48:36.172+0000] inf asyncmove-3g.bin Pausing torrent (torrent.cc:716)

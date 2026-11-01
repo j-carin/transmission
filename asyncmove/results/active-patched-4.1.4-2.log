@@ -1,0 +1,53 @@
+[patched-4.1.4-2 12:40:38] both daemons up
+[patched-4.1.4-2 12:40:38] seeder seeding 536870912 B
+[patched-4.1.4-2 12:40:38] downloading 0.0% at 0.0 MB/s, peers 0
+[patched-4.1.4-2 12:40:48] downloading 0.0% at 0.0 MB/s, peers 1
+[patched-4.1.4-2 12:40:58] downloading 6.8% at 4.0 MB/s, peers 1
+[patched-4.1.4-2 12:41:08] downloading 14.2% at 4.0 MB/s, peers 1
+[patched-4.1.4-2 12:41:18] downloading 21.7% at 4.0 MB/s, peers 1
+[patched-4.1.4-2 12:41:28] downloading 29.1% at 4.0 MB/s, peers 1
+[patched-4.1.4-2 12:41:29] moving at 30.2% (haveValid 162004992, 4.0 MB/s)
+[patched-4.1.4-2 12:41:33] move done in 3.5s; haveValid during the move 162004992..163315712, max rate 4.00 MB/s
+[patched-4.1.4-2 12:41:33] downloading 30.6% at 4.0 MB/s in /downloads/complete
+[patched-4.1.4-2 12:42:01] downloading 32.1% at 1.2 MB/s in /downloads/complete
+[patched-4.1.4-2 12:42:11] downloading 37.0% at 4.0 MB/s in /downloads/complete
+[patched-4.1.4-2 12:42:21] downloading 40.9% at 4.1 MB/s in /downloads/complete
+[patched-4.1.4-2 12:42:31] downloading 48.8% at 4.0 MB/s in /downloads/complete
+[patched-4.1.4-2 12:42:41] downloading 56.2% at 4.0 MB/s in /downloads/complete
+[patched-4.1.4-2 12:42:52] downloading 63.7% at 3.7 MB/s in /downloads/complete
+[patched-4.1.4-2 12:43:03] downloading 69.2% at 4.6 MB/s in /downloads/complete
+[patched-4.1.4-2 12:43:13] downloading 75.9% at 3.5 MB/s in /downloads/complete
+[patched-4.1.4-2 12:43:23] downloading 83.0% at 4.0 MB/s in /downloads/complete
+[patched-4.1.4-2 12:43:33] downloading 88.2% at 1.7 MB/s in /downloads/complete
+[patched-4.1.4-2 12:43:45] downloading 94.5% at 3.1 MB/s in /downloads/complete
+[patched-4.1.4-2 12:43:58] downloading 97.9% at 1.5 MB/s in /downloads/complete
+[patched-4.1.4-2 12:44:12] download complete 159s after the move; corruptEver=0
+[patched-4.1.4-2 12:44:12] files left in the old directory: []
+[patched-4.1.4-2 12:44:15] verify: 100.00% haveValid 536870912 of 536870912, error 0 ''
+[patched-4.1.4-2 12:44:17] sha256: 64 of 64 files match the pristine copy
+{
+ "label": "patched-4.1.4-2",
+ "total_bytes": 536870912,
+ "move_at_percent": 30.2,
+ "rate_before_move_MBps": 4.0,
+ "set_location_rpc_s": 0.007,
+ "move_duration_s": 3.5,
+ "have_valid_at_move": 162004992,
+ "have_valid_during_move": [
+  162004992,
+  163315712
+ ],
+ "max_rate_during_move_MBps": 4.0,
+ "finish_after_move_s": 158.6,
+ "corrupt_ever": 0,
+ "old_dir_leftovers": [],
+ "post_verify": {
+  "percentDone": 1.0,
+  "haveValid": 536870912,
+  "downloadDir": "/downloads/complete",
+  "error": 0,
+  "errorString": ""
+ },
+ "files": 64,
+ "sha256_mismatches": []
+}

@@ -1,0 +1,43 @@
+[patched-4.1.4-2 12:46:10] rpc up
+[patched-4.1.4-2 12:46:10] added
+[patched-4.1.4-2 12:46:10] pre-move verify done in 0s: 100.0% haveValid=3221225472 dir=/downloads/incomplete
+[patched-4.1.4-2 12:46:20] set-location --move sent
+[patched-4.1.4-2 12:46:20] t+    0s src=3221225472 dst=7471104
+[patched-4.1.4-2 12:46:35] t+   15s src=3221225472 dst=1139408896
+[patched-4.1.4-2 12:46:50] t+   30s src=3221225472 dst=1474166784
+[patched-4.1.4-2 12:47:05] t+   45s src=3221225472 dst=1727660032
+[patched-4.1.4-2 12:47:20] t+   60s src=3221225472 dst=1989541888
+[patched-4.1.4-2 12:47:35] t+   75s src=3221225472 dst=2326003712
+[patched-4.1.4-2 12:47:50] t+   90s src=3221225472 dst=2645426176
+[patched-4.1.4-2 12:48:05] t+  105s src=3221225472 dst=2952790016
+[patched-4.1.4-2 12:48:19] data fully at destination, source gone, t+119.2s
+[patched-4.1.4-2 12:48:20] t+  120s src=None dst=3221225472
+[patched-4.1.4-2 12:48:36] move summary: {"label": "patched-4.1.4-2", "total_bytes": 3221225472, "set_location_rpc_latency_s": 0.003, "set_location_ok": true, "copy_duration_s": 119.2, "first_dst_bytes_after_s": 0.1, "throughput_MBps": 27.0, "baseline_polls": 11, "baseline_median_ms": 1.8, "polls_during_move": 119, "ok_polls_during_move": 119, "failed_polls_during_move": 0, "median_latency_ms_ok": 1.7, "max_latency_ms_ok": 5.3, "max_latency_s_any": 0.01, "longest_no_answer_gap_s": 1.0, "failure_kinds": []}
+[patched-4.1.4-2 12:49:02] post-move verify: {"duration_s": 26.3, "percentDone": 1.0, "haveValid": 3221225472, "downloadDir": "/downloads/complete", "error": 0, "errorString": ""}
+{
+ "label": "patched-4.1.4-2",
+ "total_bytes": 3221225472,
+ "set_location_rpc_latency_s": 0.003,
+ "set_location_ok": true,
+ "copy_duration_s": 119.2,
+ "first_dst_bytes_after_s": 0.1,
+ "throughput_MBps": 27.0,
+ "baseline_polls": 11,
+ "baseline_median_ms": 1.8,
+ "polls_during_move": 119,
+ "ok_polls_during_move": 119,
+ "failed_polls_during_move": 0,
+ "median_latency_ms_ok": 1.7,
+ "max_latency_ms_ok": 5.3,
+ "max_latency_s_any": 0.01,
+ "longest_no_answer_gap_s": 1.0,
+ "failure_kinds": [],
+ "post_verify": {
+  "duration_s": 26.3,
+  "percentDone": 1.0,
+  "haveValid": 3221225472,
+  "downloadDir": "/downloads/complete",
+  "error": 0,
+  "errorString": ""
+ }
+}

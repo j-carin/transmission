@@ -1,0 +1,71 @@
+[old-4.1.4 12:35:30] both daemons up
+[old-4.1.4 12:35:30] seeder seeding 536870912 B
+[old-4.1.4 12:35:30] downloading 0.0% at 0.0 MB/s, peers 0
+[old-4.1.4 12:35:40] downloading 0.0% at 0.0 MB/s, peers 1
+[old-4.1.4 12:35:50] downloading 7.2% at 4.0 MB/s, peers 1
+[old-4.1.4 12:36:00] downloading 14.6% at 4.0 MB/s, peers 1
+[old-4.1.4 12:36:10] downloading 22.1% at 4.0 MB/s, peers 1
+[old-4.1.4 12:36:20] downloading 29.5% at 4.0 MB/s, peers 1
+[old-4.1.4 12:36:21] moving at 30.2% (haveValid 162004992, 4.0 MB/s)
+[old-4.1.4 12:36:50] move done in 29.1s; haveValid during the move 162004992..177995776, max rate 4.00 MB/s
+[old-4.1.4 12:36:50] downloading 33.6% at 2.8 MB/s in /downloads/complete
+[old-4.1.4 12:37:00] downloading 38.1% at 4.0 MB/s in /downloads/complete
+[old-4.1.4 12:37:11] downloading 41.4% at 4.0 MB/s in /downloads/complete
+[old-4.1.4 12:37:21] downloading 48.5% at 4.0 MB/s in /downloads/complete
+[old-4.1.4 12:37:31] downloading 54.4% at 4.0 MB/s in /downloads/complete
+[old-4.1.4 12:37:41] downloading 62.3% at 4.0 MB/s in /downloads/complete
+[old-4.1.4 12:37:51] downloading 69.3% at 4.0 MB/s in /downloads/complete
+[old-4.1.4 12:38:02] downloading 74.2% at 3.3 MB/s in /downloads/complete
+[old-4.1.4 12:38:12] downloading 81.6% at 4.0 MB/s in /downloads/complete
+[old-4.1.4 12:38:25] downloading 87.6% at 1.1 MB/s in /downloads/complete
+[old-4.1.4 12:38:36] downloading 94.6% at 3.2 MB/s in /downloads/complete
+[old-4.1.4 12:38:50] downloading 97.2% at 0.9 MB/s in /downloads/complete
+[old-4.1.4 12:39:05] downloading 99.5% at 0.5 MB/s in /downloads/complete
+[old-4.1.4 12:39:06] download complete 136s after the move; corruptEver=0
+[old-4.1.4 12:39:06] files left in the old directory: []
+[old-4.1.4 12:39:16] verify: 98.68% haveValid 529793024 of 536870912, error 0 ''
+[old-4.1.4 12:39:18] sha256: 47 of 64 files match the pristine copy
+{
+ "label": "old-4.1.4",
+ "total_bytes": 536870912,
+ "move_at_percent": 30.2,
+ "rate_before_move_MBps": 4.0,
+ "set_location_rpc_s": 0.006,
+ "move_duration_s": 29.1,
+ "have_valid_at_move": 162004992,
+ "have_valid_during_move": [
+  162004992,
+  177995776
+ ],
+ "max_rate_during_move_MBps": 4.0,
+ "finish_after_move_s": 136.0,
+ "corrupt_ever": 0,
+ "old_dir_leftovers": [],
+ "post_verify": {
+  "percentDone": 0.98681640625,
+  "haveValid": 529793024,
+  "downloadDir": "/downloads/complete",
+  "error": 0,
+  "errorString": ""
+ },
+ "files": 64,
+ "sha256_mismatches": [
+  "part-01.bin",
+  "part-02.bin",
+  "part-04.bin",
+  "part-05.bin",
+  "part-06.bin",
+  "part-15.bin",
+  "part-17.bin",
+  "part-19.bin",
+  "part-21.bin",
+  "part-23.bin",
+  "part-27.bin",
+  "part-28.bin",
+  "part-29.bin",
+  "part-30.bin",
+  "part-31.bin",
+  "part-32.bin",
+  "part-33.bin"
+ ]
+}

@@ -1,3 +1,105 @@
+# Async-move transmission image 4.1.4-2: moving a torrent that is still downloading (2026-11-01)
+
+## The change
+
+Commit `b45a79d82` on `async-move-4.1.4` (32 lines in `peer-msgs.cc`, `webseed.cc` and a comment in `torrent.cc`, plus two unit tests). Rule: a torrent in the Moving state never writes or reads piece data.
+
+- Before the state becomes Moving, `set_location_in_session_thread()` calls `close_torrent_files()`, which already flushes this torrent's blocks from the write cache (`Cache::flush_torrent()`) and then closes its fds. No extra flush was needed. This happens in the same session-thread task as the state change, so no block can enter the cache in between.
+- `tr_peerMsgsImpl::client_got_block()`: while Moving, the block is dropped before `Cache::write_block()`. If it was an active request, it is unset and published as `GotRejected`, and the wishlist's `reset_block()` makes it requestable again. The function returns 0, so the peer stays connected. New requests were already held back, because `maybe_send_block_requests()` checks `client_can_download()`.
+- Webseed: `use_fetched_blocks()` drops the block while Moving (`on_rejection()` for that block), and `max_available_reqs()` returns nothing while Moving. Webseeds never checked `client_can_download()`, so they would have kept requesting and writing during a move.
+- `add_next_block()`: queued peer requests are not read from disk while Moving. Fast-extension peers get a reject; other peers get nothing, as with any unservable request. During a completion move this used to read from `download_dir` first, i.e. from the half-copied destination file, until the next rechoke (up to 10 s).
+
+Why not pause the torrent for the move and restart it afterwards? The queue or a user can start it again mid-move, and webseeds would then write anyway. It also sends a tracker `stopped` and `started` for every move. Refusing blocks at the two write entry points holds whatever the run state is.
+
+## Unit tests (host build, gcc 13, RelWithDebInfo, fresh build dir)
+
+- New: `MoveTest.setLocationOfActiveDownloadFlushesCachedBlocks`. A leech (the zero torrent with piece 0 corrupt) receives piece 0 into the write cache only. In the same session-thread task, the test checks that the disk still has the corrupt bytes, then requests the move. After the move, the destination file must have the new bytes on disk, the old directory must be gone, and a verify must reach 100%. **With the cache flush removed from `close_torrent_files()`, this test fails** (checked, then reverted).
+- New: `MoveTest.setLocationOfActiveDownloadHoldsTransfersUntilMoved`. A gated mock job is put on the session's move worker so the torrent's move stays queued and the torrent stays Moving. While it waits, `client_can_download()` and `client_can_upload()` are false and the source is untouched. After the gate opens: the move finishes, downloading is allowed again, and the missing piece received then lands at the new location and completes the torrent. The old directory is not recreated.
+- `libtransmission-test --gtest_filter='*Move*:*IncompleteDir*'`: 25 tests from 4 suites, 25 passed. With `--gtest_repeat=15`: 15 of 15 iterations passed.
+- Full `ctest`: 635 run, 0 failed (633 before plus the 2 new). 22 skip themselves (locales, global IPv6); 11 are disabled upstream.
+
+## Image
+
+- Tags: `local/transmission-asyncmove:4.1.4-2` and `local/transmission-asyncmove:4.1.4-2-dbdfb8dfbe`
+- Image ID: `sha256:29b3a1fd01c3da6aa93c1e25bd1425fa38eec836fa5bd1b954f4afdd840552fd` (local only)
+- Source: `async-move-4.1.4` at `dbdfb8dfbe` (the fix plus the test-driver commit), exported by `prepare-source.sh`; `Dockerfile` unchanged
+- Base for both stages: unchanged, `lscr.io/linuxserver/transmission@sha256:48ef9dd6e3d7e48de55d43cc1e16fd6e9ea269a2f06c0593a3ecbd74755fd387` (linux/arm64, `4.1.4-r0-ls367`)
+- 11 layers: the base's 10 plus `/usr/bin/transmission-daemon` (root:root 0755, 1,837,928 B). `--version` prints `transmission-daemon 4.1.4 (a6d907d9ea)`; version.h has `-TR4140-` / `4.1.4`; ldd resolves every library. The builder's `apk add` upgraded no runtime package.
+- `:4.1.4` (`baf0e25a788c`) and `:4.1.3` (`b5f18e548ec1`) were not touched.
+
+## Live test: moving while downloading, with a real peer
+
+`active_run.sh` + `active_move_test.py` + `mini_tracker.py`. Throwaway containers on a user-defined bridge `amtest`:
+- a stdlib HTTP tracker
+- a seeder with the data on local disk
+- a leecher with `/downloads/incomplete` on local disk, `/downloads/complete` on the `bigbox-media` rclone mount (`complete/_asyncmove-test/<label>`), and a 4 MB/s download limit
+
+DHT, PEX, LPD and port forwarding are off, and so is uTP (over the bridge it stalled in bursts; TCP holds the limit). The data is 64 files of 8 MiB from `/dev/urandom`, one public torrent with 2,048 pieces of 256 KiB. At 30% the leecher gets `torrent-set-location {location:/downloads/complete, move:true}` and the download finishes at the new location. Then:
+- check the old directory for leftovers
+- full `torrent-verify`
+- SHA-256 of every file against the pristine copy
+
+Both images ran the identical procedure (the seeder ran the same image as the leecher).
+
+| | previous `:4.1.4` | fixed `:4.1.4-2` |
+|---|---|---|
+| moved at | 30.2% (162,004,992 B valid) | 30.2% (162,004,992 B valid) |
+| `set-location` returned in | 0.006 s | 0.007 s |
+| move worker: start to done | 3.2 s | 3.1 s |
+| verified data while Moving | grew by 16.0 MB (blocks written during the copy) | **flat**; 12 MB arrived on the wire and was dropped |
+| torrent reported complete | yes, `corruptEver` 0 | yes, `corruptEver` 0 |
+| files left in the old directory | none | none |
+| full verify afterwards | **98.68%** (529,793,024 of 536,870,912 B) | **100%** (536,870,912 B) |
+| files matching the pristine SHA-256 | **47 of 64** | **64 of 64** |
+
+On the previous image, the torrent called itself complete with no hash failure while 1.3% of its data was missing from disk. Only a manual verify showed it. The blocks written during the copy were lost: they went into source files the copy had already passed, which were then deleted, or into destination files the copy then overwrote. The fixed image re-downloaded the dropped in-flight blocks after the move: about 12 MB, three seconds at the limit.
+
+Both runs showed one 26 to 27 s stretch with no RPC answer, starting within a second of the move finishing, as the download resumed onto the rclone mount. It is the same on both images, so it is not from this change. The likely cause is the session thread opening and writing files on the FUSE mount, which the live setup never does: it downloads to local disk and moves only completed torrents.
+
+Results: `results/active-old-4.1.4.{json,log}`, `results/active-patched-4.1.4-2.{json,log}`, `results/daemon-active-*.log`.
+
+## Live test: completed-torrent move on the rclone mount (regression check)
+
+Same method, container name, ports and settings as the 4.1.4 run below. The same driver (`asyncmove_test.py`), a fresh 3 GiB `/dev/urandom` file, and a tracker-less torrent of 768 pieces of 4 MiB.
+
+| | fixed 4.1.4-2 | previous 4.1.4 (earlier today) |
+|---|---|---|
+| copy duration | 119.2 s (27.0 MB/s) | 121.2 s (26.6 MB/s) |
+| `torrent-set-location` returned after | 0.003 s | 0.002 s |
+| baseline RPC median | 1.8 ms | 1.3 ms |
+| failed polls during the move | **0 / 119** | **0 / 121** |
+| median / max latency during the move | 1.7 ms / 5.3 ms | 1.4 ms / 8.1 ms |
+| longest stretch with no RPC answer | 1.0 s (the poll interval) | 1.0 s |
+| post-move verify | 100%, haveValid 3,221,225,472, no error, 26 s | 100%, 81 s |
+
+```
+17:46:20.172 inf move Background move worker thread started (move.cc:32)
+17:46:20.172 inf move Starting a move job; 0 more still queued (move.cc:61)
+17:48:18.876 inf move Move job completed successfully (move.cc:78)
+17:48:18.876 inf asyncmove-3g.bin Finished moving files from '/downloads/incomplete' to '/downloads/complete' (torrent.cc:1796)
+```
+
+**Remote integrity.** rclone uploaded the file at 12:51:22 ET ("Copied (new)", "upload succeeded try #1"). Its SHA-256 on the storage box (`sha256sum` over SSH), `df05bc6b27581ece13f7d92eea6d5bbc3808c6344cd1c0a959db9b0672a21e5c`, matches the local pristine copy.
+
+**Shutdown.** The first `docker stop` (10 s default) again ended in SIGKILL, exit 137, as in the 4.1.4 run below. This time the timing is known:
+- The stop came at 12:49:18 ET, while rclone was still uploading the file the daemon had just verified.
+- The daemon logged nothing at all after the verify, not even "shutting down".
+- Restarted after the upload finished and stopped again, it shut down cleanly in 4.9 s (exit 0, "shutting down" logged).
+
+So a stop seems to stall while the mount is busy uploading a file the daemon has open, independent of this change. The live service's `stop_grace_period: 30m` covers it.
+
+Results: `results/run-patched-4.1.4-2.{json,log}`, `results/daemon-patched-4.1.4-2.log`.
+
+## Cleanup
+
+- All throwaway containers (tracker, seeders, leechers, `transmission-asyncmove-test`) were removed, along with the `amtest` network.
+- The local test directory `/mnt/block/asyncmove-test2` was deleted.
+- `complete/_asyncmove-test` was deleted from the mount; a listing on the storage box confirms it is gone.
+- The host build directory was deleted.
+- The live `transmission` container, `docker-compose.yaml` and Plex were not touched.
+
+---
+
 # Async-move transmission image: 4.1.4 port, build and live-mount test (2026-11-01)
 
 ## Source
