@@ -318,7 +318,7 @@ public:
             return {};
         }
 
-        if (!tor.is_running() || tor.is_done())
+        if (!tor.is_running() || tor.is_done() || tor.is_moving())
         {
             return {};
         }
@@ -389,6 +389,14 @@ void tr_webseed_task::use_fetched_blocks()
                     auto data = std::unique_ptr<Cache::BlockData>{ block_buf };
                     if (auto const* const torrent = tr_torrentFindFromId(session, tor_id); torrent != nullptr)
                     {
+                        // same as tr_peerMsgsImpl::client_got_block(): never write a block
+                        // while the files are being moved; re-request it afterwards
+                        if (torrent->is_moving())
+                        {
+                            webseed->on_rejection({ block, block + 1 });
+                            return;
+                        }
+
                         webseed->active_requests.unset(block);
                         session->cache->write_block(tor_id, block, std::move(data));
                         webseed->publish(tr_peer_event::GotBlock(torrent->block_info(), block));

@@ -1752,6 +1752,21 @@ int tr_peerMsgsImpl::client_got_block(std::unique_ptr<Cache::BlockData> block_da
 
     logtrace(this, fmt::format("got block {:d}", block));
 
+    // While the torrent's files are being relocated on the move thread, a block
+    // that was requested before the move started must not reach the cache or the
+    // disk: it would be written into the old directory or into a half-copied
+    // file. Drop it and treat it as rejected so it is re-requested after the move.
+    if (tor_.is_moving())
+    {
+        logtrace(this, fmt::format("dropping block {:d}: the torrent is being moved", block));
+        if (active_requests.test(block))
+        {
+            active_requests.unset(block);
+            publish(tr_peer_event::GotRejected(tor_.block_info(), block));
+        }
+        return 0;
+    }
+
     // NB: if writeBlock() fails the torrent may be paused.
     // If this happens, this object will be destructed and must no longer be used.
     if (auto const err = session->cache->write_block(tor_.id(), block, std::move(block_data)); err != 0)
@@ -2030,7 +2045,8 @@ void tr_peerMsgsImpl::check_request_timeout(time_t const now)
     peer_requested_.pop_front();
 
     auto buf = std::array<uint8_t, tr_block_info::BlockSize>{};
-    auto ok = is_valid_request(req) && tor_.has_piece(req.index);
+    // don't read from files that are being relocated: the copy at the destination is incomplete
+    auto ok = !tor_.is_moving() && is_valid_request(req) && tor_.has_piece(req.index);
 
     if (ok)
     {

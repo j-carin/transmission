@@ -767,4 +767,143 @@ TEST_F(MoveWorkerTest, removeOnIdleWorkerIsNoop)
     SUCCEED();
 }
 
+/***
+****  set-location on a torrent that is still downloading
+***/
+
+namespace
+{
+
+[[nodiscard]] bool all_bytes_are(std::vector<char> const& contents, size_t const n, char const ch)
+{
+    return std::size(contents) >= n && std::all_of(std::begin(contents), std::begin(contents) + n, [ch](char c) { return c == ch; });
+}
+
+} // namespace
+
+// Blocks of a downloading torrent can sit in the write cache when a move starts.
+// They must be flushed before the copy begins, so that they travel with the files
+// instead of being written later into the old directory or a half-copied file.
+TEST_F(MoveTest, setLocationOfActiveDownloadFlushesCachedBlocks)
+{
+    auto const target_dir = tr_pathbuf{ session_->configDir(), "/target"sv };
+    tr_sys_dir_create(target_dir.data(), TR_SYS_DIR_CREATE_PARENTS, 0777, nullptr);
+
+    // the zero torrent's first piece is filled with '\1', so it is still a leech
+    auto* const tor = zeroTorrentInit(ZeroTorrentState::Partial);
+    auto const piece_size = tor->piece_size();
+    EXPECT_EQ(piece_size, tr_torrentStat(tor)->leftUntilDone);
+    auto const source_dir = std::string{ tr_torrentGetDownloadDir(tor) };
+    auto const source_file = std::string{ tr_torrentFindFile(tor, 0) };
+
+    // On the session thread, receive the missing piece into the write cache only,
+    // then request the move in the same task, so nothing else can flush it first.
+    auto state = -1;
+    auto on_disk_before_move = std::vector<char>{};
+    auto requested = std::atomic<bool>{ false };
+    session_->run_in_session_thread(
+        [&]()
+        {
+            auto const [begin, end] = tor->block_span_for_piece(0);
+            for (auto block = begin; block < end; ++block)
+            {
+                auto buf = std::make_unique<Cache::BlockData>(tor->block_size(block));
+                std::fill_n(std::data(*buf), std::size(*buf), '\0');
+                session_->cache->write_block(tor->id(), block, std::move(buf));
+            }
+
+            tr_file_read(source_file, on_disk_before_move);
+            tor->set_location(target_dir.sv(), true, &state);
+            requested = true;
+        });
+    EXPECT_TRUE(waitFor([&requested]() { return requested.load(); }, MaxWaitMsec));
+    EXPECT_TRUE(waitFor([&state]() { return state == TR_LOC_DONE; }, MaxWaitMsec));
+    EXPECT_EQ(TR_LOC_DONE, state);
+
+    // the test's premise: when the move was requested, the new piece was only in the cache
+    EXPECT_TRUE(all_bytes_are(on_disk_before_move, piece_size, '\1'));
+
+    // the piece reached the disk before the copy, so it is at the destination...
+    auto const moved_file = std::string{ tr_torrentFindFile(tor, 0) };
+    EXPECT_TRUE(tr_strv_starts_with(moved_file, target_dir.sv())) << moved_file;
+    auto on_disk_after_move = std::vector<char>{};
+    EXPECT_TRUE(tr_file_read(moved_file, on_disk_after_move));
+    EXPECT_TRUE(all_bytes_are(on_disk_after_move, piece_size, '\0'));
+
+    // ...and nothing was left behind in, or written back to, the old directory
+    EXPECT_FALSE(tr_sys_path_exists(source_file));
+    EXPECT_FALSE(tr_sys_path_exists(tr_pathbuf{ source_dir, "/files-filled-with-zeroes"sv }));
+
+    blockingTorrentVerify(tor);
+    EXPECT_EQ(0, tr_torrentStat(tor)->leftUntilDone);
+
+    tr_torrentRemove(tor, true, nullptr, nullptr);
+}
+
+// From the moment a move is requested until it is done, a downloading torrent
+// neither downloads nor uploads (peer and webseed blocks that still arrive are
+// dropped and re-requested). Once the move is done, a block received afterwards
+// is written at the new location and completes the torrent.
+TEST_F(MoveTest, setLocationOfActiveDownloadHoldsTransfersUntilMoved)
+{
+    auto const target_dir = tr_pathbuf{ session_->configDir(), "/target"sv };
+    tr_sys_dir_create(target_dir.data(), TR_SYS_DIR_CREATE_PARENTS, 0777, nullptr);
+
+    auto* const tor = zeroTorrentInit(ZeroTorrentState::Partial);
+    EXPECT_EQ(tor->piece_size(), tr_torrentStat(tor)->leftUntilDone);
+    EXPECT_TRUE(tor->client_can_download());
+    auto const source_dir = std::string{ tr_torrentGetDownloadDir(tor) };
+    auto const source_file = std::string{ tr_torrentFindFile(tor, 0) };
+
+    // park the session's move worker on a gated job so this torrent's move stays
+    // queued behind it, i.e. the torrent stays in the Moving state for as long as needed
+    auto rec = Recorder{};
+    rec.gate_open.store(false);
+    session_->move_add(std::make_unique<MockMediator>(99, &rec, MockMediator::Fault::None, /*gated=*/true));
+    EXPECT_TRUE(waitFor([&rec]() { return rec.moved.load() == 1; }, MaxWaitMsec));
+
+    auto state = -1;
+    tr_torrentSetLocation(tor, target_dir, true, &state);
+    EXPECT_TRUE(waitFor([tor]() { return tor->is_moving(); }, MaxWaitMsec));
+    EXPECT_EQ(TR_LOC_MOVING, state);
+    EXPECT_FALSE(tor->client_can_download());
+    EXPECT_FALSE(tor->client_can_upload());
+    EXPECT_TRUE(tr_sys_path_exists(source_file)); // nothing has been copied yet
+
+    // let the worker go; the queued move of the torrent then runs
+    rec.gate_open.store(true);
+    EXPECT_TRUE(waitFor([&state]() { return state == TR_LOC_DONE; }, MaxWaitMsec));
+    EXPECT_TRUE(waitFor([&rec]() { return rec.done.load() == 1; }, MaxWaitMsec));
+    EXPECT_FALSE(tor->is_moving());
+    EXPECT_TRUE(tor->client_can_download());
+
+    // the missing piece arrives after the move (e.g. re-requested after being dropped)
+    auto received = std::atomic<bool>{ false };
+    session_->run_in_session_thread(
+        [&]()
+        {
+            auto const [begin, end] = tor->block_span_for_piece(0);
+            for (auto block = begin; block < end; ++block)
+            {
+                auto buf = std::make_unique<Cache::BlockData>(tor->block_size(block));
+                std::fill_n(std::data(*buf), std::size(*buf), '\0');
+                session_->cache->write_block(tor->id(), block, std::move(buf));
+                tor->on_block_received(block);
+            }
+            received = true;
+        });
+    EXPECT_TRUE(waitFor([&received]() { return received.load(); }, MaxWaitMsec));
+    EXPECT_TRUE(waitFor([tor]() { return tr_torrentStat(tor)->leftUntilDone == 0; }, MaxWaitMsec));
+
+    // it was written at the new location, and the old directory was not recreated
+    session_->run_in_session_thread([this, tor]() { session_->close_torrent_files(tor->id()); });
+    blockingTorrentVerify(tor);
+    EXPECT_EQ(0, tr_torrentStat(tor)->leftUntilDone);
+    auto const moved_file = std::string{ tr_torrentFindFile(tor, 0) };
+    EXPECT_TRUE(tr_strv_starts_with(moved_file, target_dir.sv())) << moved_file;
+    EXPECT_FALSE(tr_sys_path_exists(tr_pathbuf{ source_dir, "/files-filled-with-zeroes"sv }));
+
+    tr_torrentRemove(tor, true, nullptr, nullptr);
+}
+
 } // namespace libtransmission::test

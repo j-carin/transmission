@@ -1131,7 +1131,12 @@ void tr_torrent::set_location_in_session_thread(std::string_view const path, boo
         return;
     }
 
-    // ensure the files are all closed and idle before moving
+    // ensure the files are all closed and idle before moving.
+    // close_torrent_files() first flushes this torrent's blocks from the write
+    // cache, so everything received so far is on disk before the copy starts.
+    // Once the state is Moving, no new block reaches the cache or the disk (see
+    // tr_peerMsgsImpl::client_got_block() and the webseed), and nothing is read
+    // for upload; this matters for a torrent that is still downloading.
     session->close_torrent_files(id());
     session->verify_remove(this);
 
