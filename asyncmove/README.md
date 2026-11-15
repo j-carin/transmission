@@ -105,7 +105,7 @@ existing linuxserver container: same s6 setup, PUID/PGID, volumes and config.
 ```sh
 cd asyncmove
 ./prepare-source.sh                 # exports this branch + submodules to transmission-src.tar
-docker build -t local/transmission-asyncmove:4.1.4-2 .
+docker build -t local/transmission-asyncmove:4.1.4-3 .
 ```
 
 The pinned base is arm64 (`linux/arm64`); for amd64, set `--build-arg BASE=` to the
@@ -121,7 +121,8 @@ retired in favour of stock. The full diff against stock: `git diff 4.1.4 async-m
 
 | branch | upstream tag | linuxserver base (arm64 digest) | image tag | status |
 |--------|--------------|---------------------------------|-----------|--------|
-| `async-move-4.1.4` | 4.1.4 (`a6d907d9ea`, 2026-10-24) | 4.1.4-r0-ls367, `sha256:48ef9dd6e3d7…` | `local/transmission-asyncmove:4.1.4-2` | current: with the downloading-move fix; tested 2026-11-01 |
+| `async-move-4.1.4` | 4.1.4 (`a6d907d9ea`, 2026-10-24) | 4.1.4-r0-ls369, `sha256:3510e0a7b8da…` | `local/transmission-asyncmove:4.1.4-3` | current: same daemon as 4.1.4-2, rebuilt 2026-11-15 on linuxserver's refreshed base (OS packages) |
+| `async-move-4.1.4` | 4.1.4 (`a6d907d9ea`, 2026-10-24) | 4.1.4-r0-ls367, `sha256:48ef9dd6e3d7…` | `local/transmission-asyncmove:4.1.4-2` | previous: with the downloading-move fix; tested 2026-11-01; kept for rollback |
 | `async-move-4.1.4` at `5e572ea0f` | 4.1.4 | 4.1.4-r0-ls367, same digest | `local/transmission-asyncmove:4.1.4` | previous: PR backport only; kept for rollback |
 | `async-move-4.1.3` | 4.1.3 (`838877323f`) | 4.1.3-r0-ls364, `sha256:50e09ccd5cd7…` (first built on ls363, `sha256:4813745e2c72…`) | `local/transmission-asyncmove:4.1.3` | previous; kept for rollback |
 

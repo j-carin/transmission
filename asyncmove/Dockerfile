@@ -10,7 +10,7 @@
 # lscr.io/linuxserver/transmission:4.1.4-r0-ls367, built 2026-10-30, Alpine edge:
 # the linux/arm64 manifest of index sha256:5b3c27a96c8a37c878a525ebf377a32032c3a3acfe845ecaa7c3eb10b09c2caa
 # (amd64 manifest: sha256:ad85dbef853a8fb5318898023c9c2be88a982d26c4e4dfca02a18095ac3113c9).
-ARG BASE=lscr.io/linuxserver/transmission@sha256:48ef9dd6e3d7e48de55d43cc1e16fd6e9ea269a2f06c0593a3ecbd74755fd387
+ARG BASE=lscr.io/linuxserver/transmission@sha256:3510e0a7b8dad05e5958deb867ca888b8984c86cf64ae7b59833b41cb0627757
 
 # ---------------------------------------------------------------------------
 # builder: the same image, so musl, libstdc++, curl, libevent, libdeflate,
